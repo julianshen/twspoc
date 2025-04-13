@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - "3000:3000"
+    environment:
+      - RETHINKDB_ADDR=rethinkdb:28015
+      - DB_NAME=notifdb
+    depends_on:
+      - rethinkdb
+    restart: unless-stopped
+    networks:
+      - notification-network
+
+  rethinkdb:
+    image: rethinkdb:2.4
+    container_name: rethinkdb
+    ports:
+      - "28015:28015"
+      - "8081:8080" # RethinkDB web UI
+    restart: unless-stopped
+    networks:
+      - notification-network
+
+networks:
+  notification-network:
+    driver: bridge

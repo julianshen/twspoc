@@ -1,0 +1,190 @@
+openapi: 3.0.3
+info:
+  title: Notification Service API
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/notifications:
+    post:
+      summary: Send a new notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      responses:
+        '201':
+          description: Notification created
+    get:
+      summary: Get notifications for a user
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+
+  /api/notifications/{id}/read:
+    post:
+      summary: Mark a notification as read
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification marked as read
+
+  /api/notifications/{id}:
+    delete:
+      summary: Delete a notification
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification deleted
+
+  /api/notifications/search:
+    post:
+      summary: Search notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchParams'
+      responses:
+        '200':
+          description: Matched notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+
+  /api/notifications/subscribe:
+    get:
+      summary: Subscribe to notification stream via SSE
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSE stream started
+
+components:
+  schemas:
+    Recipient:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [user, role, group]
+        id:
+          type: string
+
+    Attachment:
+      type: object
+      properties:
+        type:
+          type: string
+        id:
+          type: string
+        url:
+          type: string
+
+    ActionButton:
+      type: object
+      properties:
+        label:
+          type: string
+        action:
+          type: string
+        url:
+          type: string
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        title:
+          type: string
+        message:
+          type: string
+        priority:
+          type: string
+          enum: [low, normal, high, critical]
+        read:
+          type: boolean
+        recipients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipient'
+        labels:
+          type: array
+          items:
+            type: string
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+        appName:
+          type: string
+        appIcon:
+          type: string
+        expiry:
+          type: string
+          format: date-time
+        actionButtons:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionButton'
+        groupId:
+          type: string
+
+    SearchParams:
+      type: object
+      properties:
+        keyword:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        labels:
+          type: array
+          items:
+            type: string
+        appName:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+        userId:
+          type: string
