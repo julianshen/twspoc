@@ -1,0 +1,157 @@
+.root {
+  display: flex;
+  height: 100vh;
+  background: #f7f8fa;
+  color: #222;
+  font-family: var(--font-geist-sans, sans-serif);
+}
+
+.sidebar {
+  width: 72px;
+  background: #222c36;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  gap: 24px;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.03);
+}
+
+.avatarContainer {
+  margin-bottom: 24px;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.tabNav {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.tabButton {
+  background: none;
+  border: none;
+  outline: none;
+  color: #b0b8c1;
+  font-size: 24px;
+  padding: 12px 0;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+  border-radius: 8px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tabButton:hover,
+.tabButton.active {
+  color: #fff;
+  background: #2d3a4a;
+}
+
+.tabIcon {
+  display: block;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  overflow: auto;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 32px;
+  min-height: 300px;
+}
+
+.twoPanel {
+  display: flex;
+  gap: 24px;
+}
+
+.leftPanel {
+  flex: 1;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 32px;
+  min-width: 0;
+}
+
+.rightPanel {
+  width: 340px;
+  background: #f3f6fa;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  min-width: 240px;
+  max-width: 400px;
+  margin-left: 0;
+  animation: fadeIn 0.2s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(40px);}
+  to { opacity: 1; transform: none;}
+}
+
+.objectViewerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px 12px 20px;
+  border-bottom: 1px solid #e0e4ea;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.closeBtn:hover {
+  background: #e0e4ea;
+  color: #222;
+}
+
+.objectViewerContent {
+  padding: 20px;
+  font-size: 15px;
+  color: #333;
+}
+
+.showObjBtn {
+  margin-top: 24px;
+  padding: 10px 18px;
+  background: #2d3a4a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.showObjBtn:hover {
+  background: #3b4b5c;
+}
