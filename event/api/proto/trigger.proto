@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package api;
 
-option go_package = "github.com/julianshen/nebula/api";
+option go_package = "event/api";
 
 // TriggerService provides APIs for managing triggers
 service TriggerService {

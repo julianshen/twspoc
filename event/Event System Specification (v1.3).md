@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document specifies the event system architecture and data formats for the Nebula Event Trigger System. It builds upon the previous v1.2 specification with enhancements to the trigger evaluation system and event processing pipeline.
+This document specifies the event system architecture and data formats for the Event Trigger System. It builds upon the previous v1.2 specification with enhancements to the trigger evaluation system and event processing pipeline.
 
 ## Event Structure
 

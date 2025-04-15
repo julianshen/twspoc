@@ -1,6 +1,6 @@
-# End-to-End Test for Nebula Event Trigger System
+# End-to-End Test for Event Trigger System
 
-This document outlines the steps to perform an end-to-end test of the Nebula Event Trigger System.
+This document outlines the steps to perform an end-to-end test of the Event Trigger System.
 
 ## Prerequisites
 

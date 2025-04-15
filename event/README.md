@@ -1,6 +1,6 @@
-# Nebula: Event Trigger System
+# Event Trigger System
 
-Nebula is a Go-based event trigger system that uses etcd for configuration storage with dynamic reloading capabilities. It provides a robust, centralized way to manage trigger configurations across multiple instances of the trigger service, with real-time updates when configurations change.
+This is a Go-based event trigger system that uses etcd for configuration storage with dynamic reloading capabilities. It provides a robust, centralized way to manage trigger configurations across multiple instances of the trigger service, with real-time updates when configurations change.
 
 ## Features
 
@@ -14,7 +14,7 @@ Nebula is a Go-based event trigger system that uses etcd for configuration stora
 
 ## Architecture
 
-Nebula consists of the following components:
+It consists of the following components:
 
 1. **Trigger Service (`triggerd`)**: Evaluates events against trigger definitions
 2. **Event Store Service (`eventstore`)**: Stores events in MongoDB
@@ -34,7 +34,7 @@ Nebula consists of the following components:
 
 ### Running with Docker Compose
 
-The easiest way to run Nebula is with Docker Compose:
+The easiest way to run this program is with Docker Compose:
 
 ```bash
 docker-compose up -d
@@ -111,9 +111,3 @@ For a complete end-to-end test, follow the instructions in [utils/end_to_end_tes
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Acknowledgments
-
-Similar projects that inspired Nebula:
-
-- [rynbrd/sentinel](https://github.com/rynbrd/sentinel): Triggered templating and command execution for etcd
-- [sheldonh/etcd-trigger](https://github.com/sheldonh/etcd-trigger): Send values from etcd to an HTTP endpoint on change
