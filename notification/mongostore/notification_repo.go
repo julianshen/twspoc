@@ -95,31 +95,15 @@ func (r *MongoNotificationRepository) Create(ctx context.Context, n *types.Notif
 // Get retrieves a notification by its ID from MongoDB.
 func (r *MongoNotificationRepository) Get(ctx context.Context, id string) (*types.Notification, error) {
 	var notification types.Notification
+	// Always filter by the _id field using the provided string ID
+	filter := bson.M{"_id": id}
 
-	// Try to convert the ID to an ObjectID if it's in that format
-	var filter bson.M
-	objID, err := primitive.ObjectIDFromHex(id)
-	if err == nil {
-		// If it's a valid ObjectID, search by _id
-		filter = bson.M{"_id": objID}
-	} else {
-		// Otherwise, search by the ID field
-		filter = bson.M{"id": id}
-	}
-
-	// First try to find by _id or id
-	err = r.collection.FindOne(ctx, filter).Decode(&notification)
+	err := r.collection.FindOne(ctx, filter).Decode(&notification)
 	if err != nil {
-		// If not found, try to find by the ID field directly
 		if err == mongo.ErrNoDocuments {
-			filter = bson.M{"id": id}
-			err = r.collection.FindOne(ctx, filter).Decode(&notification)
-			if err != nil {
-				return nil, mongo.ErrNoDocuments
-			}
-		} else {
-			return nil, err
+			return nil, mongo.ErrNoDocuments // Keep specific error
 		}
+		return nil, err // Return other errors
 	}
 
 	return &notification, nil
@@ -127,37 +111,37 @@ func (r *MongoNotificationRepository) Get(ctx context.Context, id string) (*type
 
 // Update modifies an existing notification in MongoDB.
 func (r *MongoNotificationRepository) Update(ctx context.Context, n *types.Notification) error {
-	// Try to convert the ID to an ObjectID if it's in that format
-	var filter bson.M
-	objID, err := primitive.ObjectIDFromHex(n.ID)
-	if err == nil {
-		// If it's a valid ObjectID, search by _id
-		filter = bson.M{"_id": objID}
-	} else {
-		// Otherwise, search by the ID field
-		filter = bson.M{"id": n.ID}
-	}
-
+	// Always filter by the _id field using the provided string ID from the notification struct
+	filter := bson.M{"_id": n.ID}
+	// Use bson.M{"$set": n} which marshals the whole struct.
+	// Ensure the struct has correct bson tags, especially for _id.
 	update := bson.M{"$set": n}
-	_, err = r.collection.UpdateOne(ctx, filter, update)
-	return err
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+	// Check if any document was actually updated
+	if result.MatchedCount == 0 {
+		return mongo.ErrNoDocuments // Return specific error if no document matched
+	}
+	return nil
 }
 
 // Delete removes a notification by its ID from MongoDB.
 func (r *MongoNotificationRepository) Delete(ctx context.Context, id string) error {
-	// Try to convert the ID to an ObjectID if it's in that format
-	var filter bson.M
-	objID, err := primitive.ObjectIDFromHex(id)
-	if err == nil {
-		// If it's a valid ObjectID, search by _id
-		filter = bson.M{"_id": objID}
-	} else {
-		// Otherwise, search by the ID field
-		filter = bson.M{"id": id}
-	}
+	// Always filter by the _id field using the provided string ID
+	filter := bson.M{"_id": id}
 
-	_, err = r.collection.DeleteOne(ctx, filter)
-	return err
+	result, err := r.collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return err
+	}
+	// Check if any document was actually deleted
+	if result.DeletedCount == 0 {
+		return mongo.ErrNoDocuments // Return specific error if no document was deleted
+	}
+	return nil
 }
 
 // ListByUser retrieves all notifications for a specific user ID from MongoDB.

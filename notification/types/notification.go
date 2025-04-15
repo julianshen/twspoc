@@ -27,21 +27,21 @@ type ActionButton struct {
 
 // Notification represents a notification message
 type Notification struct {
-	ID            string         `json:"id" rethinkdb:"id,omitempty"`
-	Timestamp     time.Time      `json:"timestamp" rethinkdb:"timestamp"`
-	Title         string         `json:"title" rethinkdb:"title"`
-	Message       string         `json:"message" rethinkdb:"message"`
-	Priority      string         `json:"priority" rethinkdb:"priority"`
-	Read          bool           `json:"read" rethinkdb:"read"`
-	Recipients    []Recipient    `json:"recipients" rethinkdb:"recipients"`
-	Labels        []string       `json:"labels,omitempty" rethinkdb:"labels,omitempty"`
-	Attachments   []Attachment   `json:"attachments,omitempty" rethinkdb:"attachments,omitempty"`
-	AppName       string         `json:"appName,omitempty" rethinkdb:"appName,omitempty"`
-	AppIcon       string         `json:"appIcon,omitempty" rethinkdb:"appIcon,omitempty"`
-	Expiry        *time.Time     `json:"expiry,omitempty" rethinkdb:"expiry,omitempty"`
-	ActionButtons []ActionButton `json:"actionButtons,omitempty" rethinkdb:"actionButtons,omitempty"`
-	GroupID       string         `json:"groupId,omitempty" rethinkdb:"groupId,omitempty"`
-	DeletedFor    []string       `json:"deletedFor,omitempty" rethinkdb:"deletedFor,omitempty"`
+	ID            string         `json:"id" bson:"_id,omitempty" rethinkdb:"id,omitempty"`
+	Timestamp     time.Time      `json:"timestamp" bson:"timestamp" rethinkdb:"timestamp"`
+	Title         string         `json:"title" bson:"title" rethinkdb:"title"`
+	Message       string         `json:"message" bson:"message" rethinkdb:"message"`
+	Priority      string         `json:"priority" bson:"priority" rethinkdb:"priority"`
+	Read          bool           `json:"read" bson:"read" rethinkdb:"read"`
+	Recipients    []Recipient    `json:"recipients" bson:"recipients" rethinkdb:"recipients"`
+	Labels        []string       `json:"labels,omitempty" bson:"labels,omitempty" rethinkdb:"labels,omitempty"`
+	Attachments   []Attachment   `json:"attachments,omitempty" bson:"attachments,omitempty" rethinkdb:"attachments,omitempty"`
+	AppName       string         `json:"appName,omitempty" bson:"appName,omitempty" rethinkdb:"appName,omitempty"`
+	AppIcon       string         `json:"appIcon,omitempty" bson:"appIcon,omitempty" rethinkdb:"appIcon,omitempty"`
+	Expiry        *time.Time     `json:"expiry,omitempty" bson:"expiry,omitempty" rethinkdb:"expiry,omitempty"`
+	ActionButtons []ActionButton `json:"actionButtons,omitempty" bson:"actionButtons,omitempty" rethinkdb:"actionButtons,omitempty"`
+	GroupID       string         `json:"groupId,omitempty" bson:"groupId,omitempty" rethinkdb:"groupId,omitempty"`
+	DeletedFor    []string       `json:"deletedFor,omitempty" bson:"deletedFor,omitempty" rethinkdb:"deletedFor,omitempty"`
 }
 
 // SearchParams represents search parameters for notifications
