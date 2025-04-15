@@ -10,9 +10,12 @@ services:
       - "3000:3000"
     environment:
       - RETHINKDB_ADDR=rethinkdb:28015
+      - MONGODB_URI=mongodb://mongodb:27017
       - DB_NAME=notifdb
+      - DB_TYPE=rethink # or "mongo" to use MongoDB
     depends_on:
       - rethinkdb
+      - mongodb
     restart: unless-stopped
     networks:
       - notification-network
@@ -27,6 +30,20 @@ services:
     networks:
       - notification-network
 
+  mongodb:
+    image: mongo:6
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+    networks:
+      - notification-network
+
 networks:
   notification-network:
     driver: bridge
+
+volumes:
+  mongodb_data:

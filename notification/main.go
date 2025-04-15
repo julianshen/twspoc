@@ -2,9 +2,11 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -12,46 +14,83 @@ import (
 	r "github.com/rethinkdb/rethinkdb-go"
 
 	"notification/api"
+	"notification/mongostore"
+	"notification/notificationrepo"
 	"notification/rethinkstore"
 )
 
 func main() {
 	// Set up signal handling for graceful shutdown
-
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
-	// Get RethinkDB address and database name from environment variable or use default
-	rethinkAddr := getEnv("RETHINKDB_ADDR", "localhost:28015")
+	// Get database configuration from environment variables
+	dbType := strings.ToLower(getEnv("DB_TYPE", "rethink")) // "rethink" or "mongo"
 	dbName := getEnv("DB_NAME", "notifdb")
 
-	// Connect to RethinkDB
-	log.Printf("Connecting to RethinkDB at %s...", rethinkAddr)
-	session, err := r.Connect(r.ConnectOpts{
-		Address:  rethinkAddr,
-		Database: dbName,
-		Timeout:  10 * time.Second,
-	})
-	if err != nil {
-		log.Fatalf("Failed to connect to RethinkDB: %v", err)
-	}
-	defer session.Close()
-	log.Println("Successfully connected to RethinkDB")
+	// Initialize repository based on DB_TYPE
+	var notifRepo notificationrepo.NotificationRepository
+	var cleanup func()
 
-	// Ensure database exists
-	err = ensureDatabase(session, dbName)
-	if err != nil {
-		log.Fatalf("Failed to ensure database: %v", err)
+	if dbType == "mongo" {
+		// MongoDB setup
+		mongoURI := getEnv("MONGODB_URI", "mongodb://localhost:27017")
+		log.Printf("Using MongoDB at %s...", mongoURI)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		repo, err := mongostore.NewMongoNotificationRepository(ctx, mongoURI, dbName, "notifications")
+		if err != nil {
+			log.Fatalf("Failed to connect to MongoDB: %v", err)
+		}
+
+		cleanup = func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := repo.Close(ctx); err != nil {
+				log.Printf("Error closing MongoDB connection: %v", err)
+			}
+		}
+
+		notifRepo = repo
+		log.Println("Successfully connected to MongoDB")
+	} else {
+		// RethinkDB setup (default)
+		rethinkAddr := getEnv("RETHINKDB_ADDR", "localhost:28015")
+		log.Printf("Using RethinkDB at %s...", rethinkAddr)
+
+		session, err := r.Connect(r.ConnectOpts{
+			Address:  rethinkAddr,
+			Database: dbName,
+			Timeout:  10 * time.Second,
+		})
+		if err != nil {
+			log.Fatalf("Failed to connect to RethinkDB: %v", err)
+		}
+
+		cleanup = func() {
+			session.Close()
+		}
+
+		// Ensure database exists
+		err = ensureDatabase(session, dbName)
+		if err != nil {
+			log.Fatalf("Failed to ensure database: %v", err)
+		}
+
+		// Ensure notifications table exists
+		err = ensureTable(session, dbName, "notifications")
+		if err != nil {
+			log.Fatalf("Failed to ensure notifications table: %v", err)
+		}
+
+		notifRepo = rethinkstore.NewRethinkNotificationRepo(session)
+		log.Println("Successfully connected to RethinkDB")
 	}
 
-	// Ensure notifications table exists
-	err = ensureTable(session, dbName, "notifications")
-	if err != nil {
-		log.Fatalf("Failed to ensure notifications table: %v", err)
-	}
-
-	// Initialize repository
-	notifRepo := rethinkstore.NewRethinkNotificationRepo(session)
+	// Ensure cleanup happens when the program exits
+	defer cleanup()
 
 	// Set Gin to release mode for production, or comment out for debug
 	// gin.SetMode(gin.ReleaseMode)
@@ -68,7 +107,8 @@ func main() {
 
 	// Start HTTP server in a goroutine
 	go func() {
-		log.Println("Notification service running on :3000")
+		port := getEnv("PORT", "3000")
+		log.Printf("Notification service running on :%s (using %s)", port, dbType)
 		log.Println("Available endpoints:")
 		log.Println("- POST /api/notifications - Create a notification")
 		log.Println("- GET /api/notifications?userId=xxx - Get notifications for a user")
@@ -77,7 +117,7 @@ func main() {
 		log.Println("- POST /api/notifications/search - Search notifications")
 		log.Println("- GET /api/notifications/subscribe?userId=xxx - Subscribe to notification updates")
 
-		if err := router.Run(":3000"); err != nil {
+		if err := router.Run(":" + port); err != nil {
 			log.Fatalf("Gin server error: %v", err)
 		}
 	}()
