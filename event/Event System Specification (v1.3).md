@@ -1,152 +1,301 @@
-# Event System Specification (v1.3)
-
 ## Overview
 
-This document specifies the event system architecture and data formats for the Event Trigger System. It builds upon the previous v1.2 specification with enhancements to the trigger evaluation system and event processing pipeline.
+This specification defines the structure and semantics of an event system built on top of **NATS**. Events represent meaningful state changes or actions related to domain objects and are serialized for distribution across services.
 
-## Event Structure
+## Purpose
 
-Events represent state changes in the system and follow this structure:
+- Provide a consistent schema for events
+- Enable interoperability between producers and consumers
+- Support versioning and namespace-based object separation
+- Persist event history in MongoDB for queryable long-term storage
+- Allow triggers to execute actions when events match specific criteria
 
-```json
-{
-  "event_id": "unique-event-identifier",
-  "event_type": "object.action",
-  "event_version": "1.3",
-  "namespace": "domain-specific-namespace",
-  "object_type": "type-of-object",
-  "object_id": "identifier-of-affected-object",
-  "timestamp": "2025-04-12T10:15:00Z",
-  "actor": {
-    "type": "user|system|service",
-    "id": "actor-identifier"
-  },
-  "context": {
-    "request_id": "original-request-identifier",
-    "trace_id": "distributed-tracing-identifier"
-  },
-  "payload": {
-    "before": {
-      // Object state before the change (optional)
-    },
-    "after": {
-      // Object state after the change (optional)
-    }
-  },
-  "nats_meta": {
-    "stream": "stream-name",
-    "sequence": 12345,
-    "received_at": "2025-04-12T10:15:01Z"
-  }
-}
+---
+
+## Event Structure (v1.3)
+
+### Top-Level Fields
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `event_id` | `string (UUID v4)` | ✅ | Unique event identifier |
+| `event_type` | `string` | ✅ | Semantic name (e.g., `user.created`) |
+| `event_version` | `string` | ✅ | Schema version (e.g., `1.3.0`) |
+| `namespace` | `string` | ✅ | Logical group or tenant (e.g., `core`, `tenant_abc`) |
+| `object_type` | `string` | ✅ | Entity type (e.g., `Order`, `User`) |
+| `object_id` | `string` | ✅ | Unique ID of the entity |
+| `timestamp` | `string (ISO-8601)` | ✅ | UTC timestamp of the event |
+| `actor` | `object` | ✅ | Entity that triggered the event |
+| `context` | `object` | ⭕ | Trace and correlation info |
+| `payload` | `object` | ✅ | State diff or action result |
+| `nats_meta` | `object` | ⭕ | Metadata from NATS JetStream delivery |
+
+### Subfields
+
+### `actor`
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `type` | `string` | ✅ | E.g., `user`, `system`, `service` |
+| `id` | `string` | ✅ | Identifier of the actor |
+
+### `context`
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `request_id` | `string` | Request-scoped ID (for tracing) |
+| `trace_id` | `string` | Distributed trace correlation ID |
+
+### `payload`
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `before` | `object/null` | Previous state (optional) |
+| `after` | `object/null` | New state or action result |
+
+### `nats_meta`
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `stream` | `string` | JetStream stream name |
+| `sequence` | `number` | Sequence number in stream |
+| `received_at` | `string` | Timestamp when received by consumer |
+
+---
+
+## NATS Subject Convention
+
+Events are published using a standardized subject format:
+
 ```
+event.<namespace>.<object_type>.<event_type>
 
-### Field Descriptions
-
-- **event_id**: Unique identifier for the event
-- **event_type**: Dot-notation type of the event (e.g., "user.created", "order.updated")
-- **event_version**: Version of the event schema (currently "1.3")
-- **namespace**: Domain-specific namespace for the event
-- **object_type**: Type of object affected by the event
-- **object_id**: Identifier of the specific object affected
-- **timestamp**: ISO 8601 timestamp when the event occurred
-- **actor**: Entity that caused the event
-  - **type**: Type of actor (user, system, service)
-  - **id**: Identifier of the actor
-- **context**: Additional contextual information
-  - **request_id**: Original request identifier
-  - **trace_id**: Distributed tracing identifier
-- **payload**: Event-specific data
-  - **before**: Object state before the change (optional)
-  - **after**: Object state after the change (optional)
-- **nats_meta**: NATS-specific metadata
-  - **stream**: NATS stream name
-  - **sequence**: Sequence number in the stream
-  - **received_at**: Timestamp when the event was received by NATS
-
-## Trigger Definition
-
-Triggers define conditions for reacting to events and follow this structure:
-
-```json
-{
-  "id": "trigger-identifier",
-  "name": "human-readable-name",
-  "namespace": "domain-specific-namespace",
-  "object_type": "type-of-object",
-  "event_type": "object.action",
-  "criteria": "expression-based-condition",
-  "description": "human-readable-description",
-  "enabled": true
-}
 ```
-
-### Field Descriptions
-
-- **id**: Unique identifier for the trigger
-- **name**: Human-readable name for the trigger
-- **namespace**: Domain-specific namespace for the trigger
-- **object_type**: Type of object to match (optional, if empty matches all)
-- **event_type**: Type of event to match (optional, if empty matches all)
-- **criteria**: Expression-based condition for matching events
-- **description**: Human-readable description of the trigger
-- **enabled**: Whether the trigger is active
-
-## Expression Language
-
-The criteria field in trigger definitions uses the expr language (https://github.com/expr-lang/expr) to define conditions that are evaluated against events.
-
-### Available Variables
-
-- **event**: The full event object with all fields
 
 ### Examples
 
-Match events where the amount is greater than 1000:
+- `event.tenant_abc.order.status_changed`
+- `event.core.user.created`
+- `event.auth.session.expired`
+
+### Wildcard Subscriptions
+
+- `event.tenant_abc.>` → All events for a tenant
+- `event.*.user.*` → All user events across namespaces
+
+---
+
+## Event Type Conventions
+
+| Event Type | Description |
+| --- | --- |
+| `object.created` | New entity created |
+| `object.updated` | Entity updated |
+| `object.deleted` | Entity deleted |
+| `object.status_changed` | Status field changed |
+| `object.<action>` | Domain-specific action (e.g., `user.logged_in`) |
+
+---
+
+## Event History in MongoDB
+
+All events SHALL be persisted in a MongoDB collection named `events` for long-term storage and auditability. Each event MUST be stored as a single document, using `event_id` as the `_id` field. The document SHOULD retain the full event payload and optionally include JetStream metadata under `nats_meta`.
+
+### Suggested Indexes
+
+- `{ object_id: 1 }`
+- `{ namespace: 1, object_type: 1, event_type: 1, timestamp: -1 }`
+- `{ timestamp: -1 }`
+
+---
+
+## Triggers
+
+A **trigger** defines a condition that, when matched by an incoming event, automatically sends the event to a specified URL or API endpoint.
+
+### Trigger Format (YAML)
+
+```yaml
+- name: Notify on admin signup
+  enabled: true
+  criteria: event_type == "user.created" AND payload.after.role == "admin"
+  action_url: <https://example.com/webhook/notify>
+  retry_count: 3
+  timeout: 5
+
 ```
-event.payload.after.amount > 1000
+
+### Fields
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `name` | `string` | ✅ | Trigger name |
+| `enabled` | `bool` | ✅ | Whether the trigger is active |
+| `criteria` | `string` | ✅ | Expression that defines match logic |
+| `action_url` | `string` | ✅ | Webhook or endpoint to send matching events |
+| `retry_count` | `int` | ⭕ | Number of retry attempts on failure |
+| `timeout` | `int` | ⭕ | Request timeout in seconds |
+
+---
+
+## DSL for Trigger Criteria
+
+The DSL (Domain Specific Language) is used to define logical criteria for matching events. If an incoming event satisfies the criteria, the trigger is activated and its action is invoked.
+
+Trigger `criteria` are defined using a simple **DSL (Domain Specific Language)** for filtering events. The expression must evaluate to `true` for the trigger to activate.
+
+### Supported Features
+
+### Logical Operators
+
+- `AND`, `OR`, `NOT`
+
+### Comparison Operators
+
+- `==`, `!=`, `<`, `<=`, `>`, `>=`
+
+### Accessing Event Fields
+
+- Top-level fields: `event_type`, `namespace`, `object_type`, `timestamp`, etc.
+- Nested fields: `payload.after.status`, `actor.type`, `context.trace_id`
+
+### String Literals
+
+- Must be enclosed in double quotes: `"user.created"`
+
+### Examples
+
+| Expression | Meaning |
+| --- | --- |
+| `event_type == "order.shipped"` | Match shipped orders |
+| `namespace == "auth" AND actor.type == "user"` | User-triggered events in `auth` |
+| `payload.after.status == "failed"` | Detect failure states |
+| `object_type == "Invoice" AND payload.after.paid == true` | Match when invoice is paid |
+
+### Field Existence Checks
+
+You can check if a field exists (i.e., is not null or missing):
+
+### Method 1: Null Comparison
+
+```
+payload.after.status != null
+
 ```
 
-Match events where the region is "US":
+This returns `true` if `status` is present and not null.
+
+### Method 2: `has()` Function (preferred if supported)
+
 ```
-event.payload.after.region == "US"
+has(payload.after.status)
+
 ```
 
-Match events with a combination of conditions:
+Returns `true` if the field exists, even if its value is null. Safer in strict evaluators.
+
+### Notes
+
+- Fields not present in the event are treated as `null`
+- Boolean values should use `true`/`false`
+- Strings must be quoted with `"` (double quotes)
+
+---
+
+## Example Event (JSON)
+
+```json
+{
+  "event_id": "13fc370e-63a3-43e7-b1f2-9db57b6f788d",
+  "event_type": "user.updated",
+  "event_version": "1.3.0",
+  "namespace": "auth",
+  "object_type": "User",
+  "object_id": "user_002",
+  "timestamp": "2025-04-06T12:30:00Z",
+  "actor": {
+    "type": "system",
+    "id": "sync_service"
+  },
+  "context": {
+    "request_id": "req_xyz789",
+    "trace_id": "trace_abcd1234"
+  },
+  "payload": {
+    "before": {
+      "email": "old@example.com"
+    },
+    "after": {
+      "email": "new@example.com"
+    }
+  },
+  "nats_meta": {
+    "stream": "EVENTS",
+    "sequence": 1034,
+    "received_at": "2025-04-06T12:30:01Z"
+  }
+}
+
 ```
-event.event_type == "order.created" && event.payload.after.amount > 1000 && event.payload.after.region == "US"
+
+---
+
+## Job Object Overview
+
+A **Job** is:
+
+- An activity or unit of work
+- Identified by `job_id`
+- Triggered by a `job.started` event
+- Ends with `job.completed` or `job.failed`
+- Carries inputs, status, and optional result
+
+### Job Event Lifecycle
+
+| Event Type | Description |
+| --- | --- |
+| `job.started` | Job has begun |
+| `job.completed` | Job finished successfully |
+| `job.failed` | Job failed |
+
+These events are emitted as `event.*.*.*` with `object_type = "Job"`.
+
+### NATS Subjects
+
+```
+event.core.job.started
+event.core.job.completed
+event.core.job.failed
+
 ```
 
-### Custom Functions
+---
 
-- **has(obj, path)**: Checks if a nested path exists in an object
-  - Example: `has(event.payload.after, "user.role")`
+## 🧩 Example Event
 
-## Event Processing Pipeline
+---
 
-1. Events are published to NATS on subject patterns like `event.{namespace}.{object_type}.{event_type}`
-2. The eventstore service subscribes to these events and stores them in MongoDB
-3. The triggerd service also subscribes to these events and evaluates them against registered triggers
-4. When a trigger matches an event, the corresponding action is executed
+⛏ Optional Features
 
-### Batch Processing
+- `created_at`, `started_at`, `completed_at`
+- `retries`: number of retry attempts (if failure allowed)
+- `depends_on`: array of task IDs for DAG-style orchestration
+- `triggered_by`: event that caused the task to start
 
-The eventstore service uses batch processing for efficiency:
-- Default batch size: 1000 events
-- Default batch timeout: 5 seconds
+---
 
-## Dynamic Trigger Management
+## 👀 Use Case Scenarios
 
-Triggers are stored in etcd with the following features:
-- Centralized storage accessible by all triggerd instances
-- Dynamic reloading when triggers change
-- Namespace-based organization
-- gRPC API for trigger management
+- Asynchronous job system (e.g., image processing, data sync)
+- Workflow steps in a saga
+- Retryable background workers
+- Chained tasks with manual or auto trigger
 
-## Changes from v1.2
+## Version History
 
-1. Enhanced expression language support with custom functions
-2. Improved namespace-based event processing
-3. Dynamic trigger reloading from etcd
-4. Batch processing optimizations
-5. Added support for NATS metadata
+| Version | Date | Notes |
+| --- | --- | --- |
+| 1.0.0 | 2025-04-06 | Initial specification |
+| 1.1.0 | 2025-04-06 | Added `namespace` and subject formatting rules |
+| 1.2.0 | 2025-04-06 | Added MongoDB event store and `nats_meta` field |
+| 1.3.0 | 2025-04-06 | Added `Trigger` support and DSL for event-driven actions |
