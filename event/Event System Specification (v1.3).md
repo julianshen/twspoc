@@ -246,9 +246,10 @@ A **Job** is:
 
 - An activity or unit of work
 - Identified by `job_id`
-- Triggered by a `job.started` event
-- Ends with `job.completed` or `job.failed`
-- Carries inputs, status, and optional result
+- Categorized by `job_type` (e.g., `ComputeJob`, `ImageScaleJob`)
+- Lives within a `namespace` to support multi-tenancy and event segregation
+- Triggered by lifecycle events: `job.started`, `job.completed`, `job.failed`
+- Carries inputs, status, optional result, and error information
 
 ### Job Event Lifecycle
 
@@ -258,9 +259,10 @@ A **Job** is:
 | `job.completed` | Job finished successfully |
 | `job.failed` | Job failed |
 
-These events are emitted as `event.*.*.*` with `object_type = "Job"`.
+These events are emitted as `event.<namespace>.<job_type>.<event_type>` with `object_type` set to the specific job type (e.g., `ComputeJob`).
 
 ### Job Event Payload Structure
+
 ```json
 {
   "job_id": "job_abc123",
@@ -279,13 +281,59 @@ These events are emitted as `event.*.*.*` with `object_type = "Job"`.
   }
 }
 ```
+
+### Full Event Example with Job Object
+
+```json
+{
+  "event_id": "abc12345-6789-4def-0123-456789abcdef",
+  "event_type": "job.started",
+  "event_version": "1.3.0",
+  "namespace": "mynamespace",
+  "object_type": "ComputeJob",
+  "object_id": "job_abc123",
+  "timestamp": "2025-04-16T14:00:00Z",
+  "actor": {
+    "type": "system",
+    "id": "job_scheduler"
+  },
+  "context": {
+    "request_id": "req_987654321",
+    "trace_id": "trace_abcdef123456"
+  },
+  "payload": {
+    "before": null,
+    "after": {
+      "job_id": "job_abc123",
+      "job_type": "resize_image",
+      "input": {
+        "image_url": "https://example.com/image.jpg",
+        "size": "800x600"
+      },
+      "status": "started",
+      "result": null,
+      "error": null,
+      "created_at": "2025-04-16T13:59:00Z",
+      "started_at": "2025-04-16T14:00:00Z",
+      "completed_at": null,
+      "retries": 0,
+      "depends_on": ["job_xyz789"],
+      "triggered_by": "event_1234567890"
+    }
+  },
+  "nats_meta": {
+    "stream": "EVENTS",
+    "sequence": 2048,
+    "received_at": "2025-04-16T14:00:01Z"
+  }
+}
+```
+
 ### NATS Subjects
 
 ```
-event.core.job.started
-event.core.job.completed
-event.core.job.failed
-
+event.mynamespace.compute_job.started
+event.mynamespace.image_scale_job.completed
 ```
 
 ---
