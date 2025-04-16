@@ -276,8 +276,13 @@ These events are emitted as `event.<namespace>.<job_type>.<event_type>` with `ob
     "output_url": "https://..."
   },
   "error": {
+    "code": "IMG_TOO_LARGE",
     "message": "Resize failed",
-    "code": "IMG_TOO_LARGE"
+    "details": {
+      "max_size_mb": 10,
+      "actual_size_mb": 15.2
+    },
+    "timestamp": "2025-04-16T14:05:00Z"
   }
 }
 ```
