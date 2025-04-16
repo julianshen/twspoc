@@ -260,6 +260,25 @@ A **Job** is:
 
 These events are emitted as `event.*.*.*` with `object_type = "Job"`.
 
+### Job Event Payload Structure
+```json
+{
+  "job_id": "job_abc123",
+  "job_type": "resize_image",
+  "input": {
+    "image_url": "https://...",
+    "size": "800x600"
+  },
+  "status": "started | completed | failed",
+  "result": {
+    "output_url": "https://..."
+  },
+  "error": {
+    "message": "Resize failed",
+    "code": "IMG_TOO_LARGE"
+  }
+}
+```
 ### NATS Subjects
 
 ```
